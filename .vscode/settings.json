@@ -1,0 +1,16 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  // Tells Mypy to use your pyproject.toml configuration
+  "mypy-type-checker.args": ["--config-file=pyproject.toml"],
+  // Checks your whole project, not just the open file (critical for refactoring)
+  "mypy-type-checker.reportingScope": "workspace",
+  // Uses the background daemon so it doesn't lag your editor
+  "mypy-type-checker.preferDaemon": true
+}
