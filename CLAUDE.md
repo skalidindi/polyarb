@@ -2,13 +2,26 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Essential Documentation
+
+**Polymarket API Documentation**: https://docs.polymarket.com/llms-full.txt
+- Complete API reference for CLOB, orders, markets, and trading mechanics
+- **Critical**: As of 2025, Polymarket has **0% fees** across all volume levels
+- Collateral token: **USDC.e** (Bridged USDC from Ethereum) on Polygon
+- Order types: GTC, GTD, FOK (Fill-Or-Kill), FAK (Fill-And-Kill)
+- Rate limits: 500 POST /order per 10s (burst), 50 GET /book per 10s
+- Batch orders: Up to 15 orders per request
+
 ## Essential Commands
 
 ### Running the Bot
 ```bash
 uv run start                # Start the arbitrage bot (preferred)
-uv run main.py              # Alternative start command
+uv run polyarb              # Alternative command
+uv run python main.py       # Direct python invocation
 ```
+
+**Logging:** All runs automatically create timestamped log files in `logs/polyarb_YYYYMMDD_HHMMSS.log`
 
 ### Development Commands
 ```bash
@@ -65,6 +78,20 @@ The bot implements a pluggable strategy architecture centered around arbitrage d
 4. **Opportunity Detection**: Strategy returns `TradingSignal` objects for profitable opportunities
 5. **Paper Trading**: `PaperTrader` simulates trades and tracks P&L
 
+### Arbitrage Execution Flow
+
+**Scenario A: YES + NO < $1.00 (Underpriced)**
+- Strategy: Buy both YES and NO tokens
+- Execution: Place two BUY orders → CLOB auto-mints via `splitPosition()`
+- No blockchain operations needed (CLOB handles minting)
+
+**Scenario B: YES + NO > $1.00 (Overpriced)**
+- Strategy: Sell both YES and NO tokens
+- Execution:
+  1. Split $X USDC → X YES + X NO tokens (blockchain tx)
+  2. Place two SELL orders → CLOB burns tokens via `mergePositions()`
+- Requires Web3 operations (gas cost ~$0.50)
+
 ### Modern Python Usage
 
 The codebase uses Python 3.13+ features:
@@ -95,14 +122,29 @@ The project uses a comprehensive testing stack optimized for trading strategy va
 ### Key Configuration Points
 
 **Strategy Tuning** (in `MarketRebalancingStrategy.__init__()`):
-- `min_profit_threshold`: Minimum profit required (default 1¢)
+- `min_profit_threshold`: Minimum profit required (default 1¢, lowered due to 0% fees)
 - `min_confidence`: Confidence threshold for trade signals (default 0.8)
 - `max_price_sum_deviation`: Maximum allowed price deviation from $1.00
+- `polymarket_fee_rate`: Currently 0% (was 2% historically)
 
 **API Integration** (in `Config`):
 - Requires Polymarket API credentials (key, secret, passphrase, private_key)
 - Connects to Polygon mainnet (chain_id=137)
+- Collateral: USDC.e (Bridged USDC) - address: 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174
 - Default paper trading mode for safety
+
+### API Rate Limits & Best Practices
+
+**Rate Limits** (as of May 2025):
+- POST /order: 500 req/10s (burst), 3000 req/10min (sustained)
+- GET /book: 50 req/10s for API access (300 req/10s for website)
+- GET /price: 100 req/10s
+
+**Best Practices**:
+- Use batch order API (up to 15 orders per request) for atomic execution
+- Prefer FOK (Fill-Or-Kill) order type for arbitrage to ensure complete sets
+- Cache aggressively to avoid hitting rate limits
+- Use WebSocket (RTDS) for real-time data instead of polling (Phase 4)
 
 ### Error Handling
 

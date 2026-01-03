@@ -4,45 +4,43 @@ import logging
 import sys
 from typing import Any
 
-import structlog
 import orjson
+import structlog
 
 
 def setup_structlog(
     level: str = "INFO", log_file: str | None = None, development: bool = True
 ) -> Any:
     """Set up structlog configuration for high-performance logging."""
-    
+
     # Configure structlog
     if development:
         # Pretty console output for development
         processors = [
             structlog.dev.set_exc_info,
             structlog.processors.add_log_level,
-            structlog.processors.add_logger_name,
             structlog.dev.ConsoleRenderer(colors=True),
         ]
     else:
         # Fast JSON output for production
         processors = [
             structlog.processors.add_log_level,
-            structlog.processors.add_logger_name,
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.JSONRenderer(serializer=orjson.dumps),
         ]
 
     structlog.configure(
         processors=processors,
-        wrapper_class=structlog.BoundLogger,
-        logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,
-        level=level.upper(),
     )
+
+    # Configure Python's logging level
+    logging.basicConfig(level=getattr(logging, level.upper()))
 
     # Disable standard library logging in production for performance
     if not development:
         logging.getLogger().disabled = True
-        
+
     return structlog.get_logger("polyarb")
 
 
@@ -50,7 +48,7 @@ def setup_logging(
     level: str = "INFO", format_string: str | None = None, log_file: str | None = None
 ) -> logging.Logger:
     """Legacy logging setup - kept for compatibility."""
-    
+
     if format_string is None:
         format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 

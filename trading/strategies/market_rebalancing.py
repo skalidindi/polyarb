@@ -18,15 +18,19 @@ class MarketRebalancingStrategy(StrategyBase):
     def __init__(
         self,
         client: Any,
-        min_profit_threshold: float = 0.01,  # Minimum $0.01 profit
+        min_profit_threshold: float = 0.01,  # Minimum profit (lowered due to 0% fees)
         max_price_sum_deviation: float = 0.05,  # 5% deviation from $1
         min_confidence: float = 0.8,
+        polymarket_fee_rate: float = 0.0,  # 0% fees as of 2025
+        estimated_gas_cost: float = 0.50,  # Per blockchain tx
     ) -> None:
         super().__init__("Market Rebalancing Arbitrage")
         self.client = client
         self.min_profit_threshold = min_profit_threshold
         self.max_price_sum_deviation = max_price_sum_deviation
         self.min_confidence = min_confidence
+        self.polymarket_fee_rate = polymarket_fee_rate
+        self.estimated_gas_cost = estimated_gas_cost
         self.logger = logging.getLogger(f"polyarb.{self.__class__.__name__}")
 
     def analyze(self, market_data: dict) -> list[TradingSignal]:
@@ -61,7 +65,7 @@ class MarketRebalancingStrategy(StrategyBase):
         # Check for arbitrage opportunity
         if market_id is None:
             return signals
-        
+
         opportunity = self._detect_arbitrage(
             market_id=market_id,
             market_question=market_question,
@@ -92,11 +96,7 @@ class MarketRebalancingStrategy(StrategyBase):
         price_sum = yes_price + no_price
         deviation = abs(price_sum - 1.0)
 
-        # Check if deviation exceeds threshold
-        if deviation < self.min_profit_threshold:
-            return None
-
-        # Calculate profit potential
+        # Calculate raw profit potential
         if price_sum < 1.0:
             # Both tokens are underpriced - buy both
             profit_potential = 1.0 - price_sum
@@ -105,6 +105,18 @@ class MarketRebalancingStrategy(StrategyBase):
             # Both tokens are overpriced - sell both (short)
             profit_potential = price_sum - 1.0
             opportunity_type = "sell_both"
+
+        # Apply Polymarket fees (currently 0% as of 2025)
+        profit_after_fees = profit_potential * (1 - self.polymarket_fee_rate)
+
+        # NOTE: Gas costs for sell_both are handled at execution time
+        # since they're fixed costs that need to be amortized over trade size.
+        # For example, $0.50 gas on a $10 trade is 5% overhead,
+        # but on a $100 trade it's only 0.5% overhead.
+
+        # Check if profit after fees exceeds minimum threshold
+        if profit_after_fees < self.min_profit_threshold:
+            return None
 
         # Calculate confidence based on deviation size
         confidence = min(1.0, deviation / self.max_price_sum_deviation)

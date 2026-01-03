@@ -1,10 +1,13 @@
 """Crypto price feed implementations."""
 
+import logging
 import time
 from dataclasses import dataclass
 
 import httpx
 import orjson
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -40,7 +43,9 @@ class CryptoPriceFeed:
             with httpx.Client() as client:
                 # Get current price
                 price_resp = client.get(
-                    f"{self.base_url}/ticker/price", params={"symbol": symbol}, timeout=5
+                    f"{self.base_url}/ticker/price",
+                    params={"symbol": symbol},
+                    timeout=5,
                 )
                 price_resp.raise_for_status()
                 price_data = orjson.loads(price_resp.content)
@@ -64,7 +69,7 @@ class CryptoPriceFeed:
             return result
 
         except Exception as e:
-            print(f"Error fetching price for {symbol}: {e}")
+            logger.warning("Error fetching price for %s: %s", symbol, e)
             return None
 
     def get_btc_price(self) -> PriceData | None:

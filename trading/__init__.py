@@ -1,11 +1,17 @@
 """Trading logic and paper trading."""
 
 from .paper_trader import PaperTrader
-from .strategies import MarketRebalancingStrategy, SimpleArbitrageStrategy, StrategyBase
+from .strategies import (
+    BtcUpDownStrategy,
+    MarketRebalancingStrategy,
+    SimpleArbitrageStrategy,
+    StrategyBase,
+)
 
 __all__ = [
-    "PaperTrader",
-    "StrategyBase",
+    "BtcUpDownStrategy",
     "MarketRebalancingStrategy",
+    "PaperTrader",
     "SimpleArbitrageStrategy",
+    "StrategyBase",
 ]
