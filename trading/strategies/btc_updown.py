@@ -55,7 +55,6 @@ class BtcUpDownStrategy(StrategyBase):
             List of active BTC up/down market dictionaries
         """
         # Use client's get_gamma_events method
-        breakpoint()
         try:
             events = self.client.get_gamma_events(
                 tag_id="102175",  # Bitcoin tag

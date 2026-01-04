@@ -72,11 +72,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2025.11.12"
+version = "2026.1.4"
 source = { registry = "https://pypi.netflix.net/simple" }
-sdist = { url = "https://pypi.netflix.net/packages/19325842934/certifi-2025.11.12.tar.gz", hash = "sha256:d8ab5478f2ecd78af242878415affce761ca6bc54a22a27e026d7c25357c3316", size = 160538, upload-time = "2025-11-12T02:54:51.517Z" }
+sdist = { url = "https://pypi.netflix.net/packages/19551676291/certifi-2026.1.4.tar.gz", hash = "sha256:ac726dd470482006e014ad384921ed6438c457018f4b3d204aea4281258b2120", size = 154268, upload-time = "2026-01-04T02:42:41.825Z" }
 wheels = [
-    { url = "https://pypi.netflix.net/packages/19325842933/certifi-2025.11.12-py3-none-any.whl", hash = "sha256:97de8790030bbd5c2d96b7ec782fc2f7820ef8dba6db909ccf95449f2d062d4b", size = 159438, upload-time = "2025-11-12T02:54:49.735Z" },
+    { url = "https://pypi.netflix.net/packages/19551676290/certifi-2026.1.4-py3-none-any.whl", hash = "sha256:9943707519e4add1115f44c2bc244f782c0249876bf51b6599fee1ffbedd685c", size = 152900, upload-time = "2026-01-04T02:42:40.15Z" },
 ]
 
 [[package]]
@@ -470,14 +470,14 @@ wheels = [
 
 [[package]]
 name = "hypothesis"
-version = "6.148.9"
+version = "6.148.11"
 source = { registry = "https://pypi.netflix.net/simple" }
 dependencies = [
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://pypi.netflix.net/packages/19542700523/hypothesis-6.148.9.tar.gz", hash = "sha256:6ec0696ed2fff8c514d61b6f1ca2cd1cb00c948ffd18cab1877c941c0ddb2839", size = 471562, upload-time = "2026-01-01T04:52:54.005Z" }
+sdist = { url = "https://pypi.netflix.net/packages/19550890888/hypothesis-6.148.11.tar.gz", hash = "sha256:4f3c38030d0f0b38c8b7153d6907892e6fcac9ecb0410e627d6af2cea677f92c", size = 471909, upload-time = "2026-01-03T21:10:45.114Z" }
 wheels = [
-    { url = "https://pypi.netflix.net/packages/19542700522/hypothesis-6.148.9-py3-none-any.whl", hash = "sha256:c514fcca90eded0e6b56d4df4bc41db935cb4635a9fe3ec9be21d09243ca983b", size = 538490, upload-time = "2026-01-01T04:52:51.353Z" },
+    { url = "https://pypi.netflix.net/packages/19550890887/hypothesis-6.148.11-py3-none-any.whl", hash = "sha256:397b3fd13d0906cf5ece76f5da340a0fbb07bd18ab61ac41a7982ceb080312f0", size = 538838, upload-time = "2026-01-03T21:10:42.843Z" },
 ]
 
 [[package]]

@@ -39,8 +39,20 @@ uv run pytest -m trading   # Run only trading strategy tests
 The bot requires Polymarket API credentials in a `.env` file:
 ```bash
 cp .env.example .env
-# Edit .env with your actual API keys
+# Edit .env with your wallet's private key
 ```
+
+**Initial Setup (First Run):**
+1. Add your `POLYMARKET_PRIVATE_KEY` to `.env`
+2. Leave the API credentials empty initially
+3. On first run, credentials will auto-generate and print to logs
+4. Copy the generated credentials back to `.env`
+
+**Important Notes:**
+- API credentials **do not expire** - they're long-lived
+- Only **one set per wallet** - creating new credentials invalidates old ones
+- Always **store in .env** to avoid regenerating on every run
+- If you get a 401 error, someone may have generated new credentials for your wallet
 
 ## Architecture Overview
 

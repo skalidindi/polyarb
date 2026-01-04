@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Any
 
 import requests
 from py_clob_client.client import ClobClient
@@ -21,6 +22,37 @@ class PolymarketClient:
     def _get_client(self) -> ClobClient:
         """Initialize client with credentials."""
         if self._client is None:
+            # Check if we need to generate credentials
+            if not all(
+                [
+                    os.getenv("POLYMARKET_API_KEY"),
+                    os.getenv("POLYMARKET_API_SECRET"),
+                    os.getenv("POLYMARKET_API_PASSPHRASE"),
+                ]
+            ):
+                logger.warning(
+                    "⚠️  API credentials missing! Generating from private key..."
+                )
+                logger.warning(
+                    "💡 Save these to .env to avoid regenerating on every run"
+                )
+                self.create_api_credentials()
+
+            # Get funder address - use env var if provided, otherwise derive from key
+            private_key = os.environ["POLYMARKET_PRIVATE_KEY"]
+
+            if os.getenv("POLYMARKET_FUNDER"):
+                # Proxy wallet setup (Magic/email): funder is separate from signing key
+                funder = os.environ["POLYMARKET_FUNDER"]
+                signature_type = 1  # Proxy wallet signature type
+            else:
+                # EOA wallet: derive funder address from private key
+                from eth_account import Account
+
+                account = Account.from_key(private_key)
+                funder = account.address
+                signature_type = 0  # EOA signature type
+
             creds = ApiCreds(
                 api_key=os.environ["POLYMARKET_API_KEY"],
                 api_secret=os.environ["POLYMARKET_API_SECRET"],
@@ -28,11 +60,79 @@ class PolymarketClient:
             )
             self._client = ClobClient(
                 self.host,
-                key=os.environ["POLYMARKET_PRIVATE_KEY"],
+                key=private_key,
                 chain_id=self.chain_id,
+                signature_type=signature_type,
+                funder=funder,
                 creds=creds,
             )
+            self._client.set_api_creds(creds)
         return self._client
+
+    def create_api_credentials(self) -> dict[str, str]:
+        """Create or derive API credentials from private key.
+
+        This generates API credentials (key, secret, passphrase) from your wallet's
+        private key. The credentials are automatically stored in environment variables
+        for the current session.
+
+        You should save these to your .env file for future use.
+
+        Returns:
+            Dictionary with 'api_key', 'api_secret', and 'api_passphrase'
+
+        Raises:
+            KeyError: If POLYMARKET_PRIVATE_KEY is not set
+            Exception: If credential generation fails
+        """
+        private_key = os.environ["POLYMARKET_PRIVATE_KEY"]
+
+        logger.info("Generating API credentials from private key...")
+
+        # Create temporary client without creds to generate them
+        temp_client = ClobClient(
+            host=self.host,
+            key=private_key,
+            chain_id=self.chain_id,
+        )
+
+        # Generate or retrieve existing credentials
+        creds = temp_client.create_or_derive_api_creds()
+
+        # Store in environment for this session
+        os.environ["POLYMARKET_API_KEY"] = creds.api_key
+        os.environ["POLYMARKET_API_SECRET"] = creds.api_secret
+        os.environ["POLYMARKET_API_PASSPHRASE"] = creds.api_passphrase
+
+        logger.info("✅ API credentials generated successfully!")
+        logger.warning(
+            "Add these to your .env file:\n"
+            f"POLYMARKET_API_KEY={creds.api_key}\n"
+            f"POLYMARKET_API_SECRET={creds.api_secret}\n"
+            f"POLYMARKET_API_PASSPHRASE={creds.api_passphrase}"
+        )
+
+        return {
+            "api_key": creds.api_key,
+            "api_secret": creds.api_secret,
+            "api_passphrase": creds.api_passphrase,
+        }
+
+    def get_wallet_address(self) -> str:
+        """Get the wallet address that holds funds (funder address).
+
+        Returns:
+            Ethereum address as hex string (0x...)
+        """
+        # Return funder address if set (proxy wallet), otherwise derive from key (EOA)
+        if os.getenv("POLYMARKET_FUNDER"):
+            return os.environ["POLYMARKET_FUNDER"]
+        else:
+            from eth_account import Account
+
+            private_key = os.environ["POLYMARKET_PRIVATE_KEY"]
+            account = Account.from_key(private_key)
+            return account.address
 
     def get_markets(self, next_cursor: str | None = None) -> dict:
         """Get available markets."""
@@ -54,9 +154,11 @@ class PolymarketClient:
     def get_balance(self) -> float:
         """Get USDC collateral balance."""
         client = self._get_client()
-        params = BalanceAllowanceParams(asset_type=AssetType.CONDITIONAL)  # type: ignore[attr-defined]
-        balance_info = client.get_balance_allowance(params)
-        return float(balance_info.get("balance", 0))
+        params = BalanceAllowanceParams(asset_type=AssetType.COLLATERAL)  # type: ignore[attr-defined]
+        balance_info: Any = client.get_balance_allowance(params)
+        # Balance is returned as string in wei format (6 decimals for USDC.e)
+        balance_wei = float(balance_info.get("balance", 0))
+        return balance_wei / 1_000_000  # Convert from wei to USDC
 
     def get_token_balance(self, token_id: str) -> float:
         """Get balance for a specific conditional token.
@@ -72,7 +174,7 @@ class PolymarketClient:
             asset_type=AssetType.CONDITIONAL,  # type: ignore[attr-defined]
             token_id=token_id,
         )
-        balance_info = client.get_balance_allowance(params)
+        balance_info: Any = client.get_balance_allowance(params)
         return float(balance_info.get("balance", 0))
 
     def get_token_price(self, token_id: str) -> float | None:
